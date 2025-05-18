@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thời Khóa Biểu</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Suppress favicon 404 -->
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=" />
+    <!-- Firebase Compatibility SDK (non-module) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Roboto", sans-serif;
+      }
+
+      body {
+        background: #fff;
+        color: #333;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        text-align: center;
+        font-size: 2.5em;
+        margin-bottom: 20px;
+        color: #0a3d62;
+      }
+
+      .form-container {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+      }
+
+      select,
+      button {
+        padding: 10px;
+        border: 1px solid #0a3d62;
+        border-radius: 5px;
+        font-size: 1em;
+      }
+
+      select {
+        background: #e0f7fa;
+        color: #333;
+        min-width: 150px;
+      }
+
+      button {
+        background: #0a3d62;
+        color: #fff;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+
+      button:hover {
+        background: #1b9aaa;
+      }
+
+      .history-btn {
+        background: #4682b4;
+      }
+
+      .history-btn:hover {
+        background: #5a9bd4;
+      }
+
+      .clear-btn {
+        background: #e63946;
+      }
+
+      .clear-btn:hover {
+        background: #d00000;
+      }
+
+      .login-btn {
+        background: #2ecc71;
+      }
+
+      .login-btn:hover {
+        background: #27ae60;
+      }
+
+      .logout-btn {
+        background: #f1c40f;
+      }
+
+      .logout-btn:hover {
+        background: #d4ac0d;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #e0f7fa;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      }
+
+      th,
+      td {
+        padding: 15px;
+        text-align: center;
+        border: 1px solid #b0e0e6;
+        vertical-align: top;
+      }
+
+      th {
+        background: #0a3d62;
+        color: #fff;
+        font-weight: 700;
+      }
+
+      .task-container {
+        margin: 5px 0;
+        padding: 10px;
+        background: #fff;
+        border: 1px solid #0a3d62;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .task-container.completed {
+        background: #1b9aaa;
+        color: #fff;
+        border: 1px solid #e0f7fa;
+        text-decoration: line-through;
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 100;
+      }
+
+      .modal-content {
+        background: #fff;
+        max-width: 400px;
+        margin: 10% auto;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        position: relative;
+      }
+
+      .modal-content input,
+      .modal-content textarea {
+        width: 100%;
+        padding: 10px;
+        margin: 5px 0;
+        border: 1px solid #0a3d62;
+        border-radius: 5px;
+      }
+
+      .modal-content textarea {
+        height: 100px;
+        resize: none;
+      }
+
+      .modal-content button {
+        margin: 5px;
+        padding: 8px 15px;
+      }
+
+      .delete-btn {
+        background: #e63946;
+      }
+
+      .delete-btn:hover {
+        background: #d00000;
+      }
+
+      #historyModal .modal-content {
+        max-width: 600px;
+      }
+
+      #historyModal ul {
+        list-style: none;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+
+      #historyModal li {
+        padding: 10px;
+        border-bottom: 1px solid #b0e0e6;
+        cursor: pointer;
+      }
+
+      #historyModal li:hover {
+        background: #e0f7fa;
+      }
+
+      #loginModal .modal-content {
+        max-width: 400px;
+      }
+
+      #loginModal button.google-btn {
+        background: #db4437;
+      }
+
+      #loginModal button.google-btn:hover {
+        background: #c1351d;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      #portraitOverlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        font-size: 1.5em;
+        text-align: center;
+        padding-top: 50%;
+        z-index: 200;
+      }
+
+      @media (max-width: 800px) {
+        /* Portrait mode on mobile */
+        @media (orientation: portrait) {
+          .container {
+            display: none;
+          }
+          #portraitOverlay {
+            display: block;
+          }
+        }
+
+        /* Landscape mode on mobile */
+        @media (orientation: landscape) {
+          .container {
+            display: block;
+          }
+          #portraitOverlay {
+            display: none;
+          }
+          table {
+            font-size: 0.8em;
+          }
+          th,
+          td {
+            padding: 8px;
+          }
+          .form-container {
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 5px;
+          }
+          select,
+          button {
+            width: auto;
+            font-size: 0.9em;
+            padding: 8px;
+          }
+          .modal-content {
+            max-width: 90%;
+            padding: 15px;
+          }
+          .modal-content input,
+          .modal-content textarea {
+            font-size: 0.9em;
+          }
+          .modal-content button {
+            padding: 6px 12px;
+          }
+        }
+      }
+
+      @media (min-width: 801px) {
+        /* Desktop: Always show content, no overlay */
+        .container {
+          display: block;
+        }
+        #portraitOverlay {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="portraitOverlay">Vui lòng xoay ngang màn hình để sử dụng!</div>
+    <div class="container">
+      <h1>Thời Khóa Biểu</h1>
+      <div class="form-container" id="authContainer">
+        <button id="loginBtn" class="login-btn">Đăng Nhập</button>
+      </div>
+      <div class="form-container hidden" id="scheduleContainer">
+        <select id="dayInput">
+          <option value="Thứ Hai">Thứ Hai</option>
+          <option value="Thứ Ba">Thứ Ba</option>
+          <option value="Thứ Tư">Thứ Tư</option>
+          <option value="Thứ Năm">Thứ Năm</option>
+          <option value="Thứ Sáu">Thứ Sáu</option>
+          <option value="Thứ Bảy">Thứ Bảy</option>
+          <option value="Chủ Nhật">Chủ Nhật</option>
+        </select>
+        <select id="periodInput">
+          <option value="Sáng">Sáng</option>
+          <option value="Chiều">Chiều</option>
+          <option value="Tối">Tối</option>
+        </select>
+        <button id="addTaskBtn">Thêm</button>
+        <button id="newScheduleBtn">Tạo thời khóa biểu mới</button>
+        <button id="historyBtn" class="history-btn">Quay lại</button>
+        <button id="clearDataBtn" class="clear-btn">Xóa Dữ Liệu</button>
+        <button id="logoutBtn" class="logout-btn">Đăng Xuất</button>
+      </div>
+      <table id="scheduleTable" class="hidden">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Thứ Hai</th>
+            <th>Thứ Ba</th>
+            <th>Thứ Tư</th>
+            <th>Thứ Năm</th>
+            <th>Thứ Sáu</th>
+            <th>Thứ Bảy</th>
+            <th>Chủ Nhật</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Sáng</td>
+            <td data-day="Thứ Hai" data-period="Sáng"></td>
+            <td data-day="Thứ Ba" data-period="Sáng"></td>
+            <td data-day="Thứ Tư" data-period="Sáng"></td>
+            <td data-day="Thứ Năm" data-period="Sáng"></td>
+            <td data-day="Thứ Sáu" data-period="Sáng"></td>
+            <td data-day="Thứ Bảy" data-period="Sáng"></td>
+            <td data-day="Chủ Nhật" data-period="Sáng"></td>
+          </tr>
+          <tr>
+            <td>Chiều</td>
+            <td data-day="Thứ Hai" data-period="Chiều"></td>
+            <td data-day="Thứ Ba" data-period="Chiều"></td>
+            <td data-day="Thứ Tư" data-period="Chiều"></td>
+            <td data-day="Thứ Năm" data-period="Chiều"></td>
+            <td data-day="Thứ Sáu" data-period="Chiều"></td>
+            <td data-day="Thứ Bảy" data-period="Chiều"></td>
+            <td data-day="Chủ Nhật" data-period="Chiều"></td>
+          </tr>
+          <tr>
+            <td>Tối</td>
+            <td data-day="Thứ Hai" data-period="Tối"></td>
+            <td data-day="Thứ Ba" data-period="Tối"></td>
+            <td data-day="Thứ Tư" data-period="Tối"></td>
+            <td data-day="Thứ Năm" data-period="Tối"></td>
+            <td data-day="Thứ Sáu" data-period="Tối"></td>
+            <td data-day="Thứ Bảy" data-period="Tối"></td>
+            <td data-day="Chủ Nhật" data-period="Tối"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="addModal" class="modal">
+      <div class="modal-content">
+        <h3>Thêm Nhiệm Vụ</h3>
+        <input type="text" id="addTitleInput" placeholder="Tiêu đề nhiệm vụ" />
+        <input type="time" id="addTimeFromInput" placeholder="Từ giờ" />
+        <input type="time" id="addTimeToInput" placeholder="Đến giờ" />
+        <textarea
+          id="addContentInput"
+          placeholder="Nội dung nhiệm vụ"
+        ></textarea>
+        <button onclick="saveTask()">Lưu</button>
+        <button onclick="closeModal('addModal')">Hủy</button>
+      </div>
+    </div>
+
+    <div id="viewModal" class="modal">
+      <div class="modal-content">
+        <h3>Chỉnh Sửa Nhiệm Vụ</h3>
+        <input type="text" id="viewTitleInput" placeholder="Tiêu đề nhiệm vụ" />
+        <input type="time" id="viewTimeFromInput" placeholder="Từ giờ" />
+        <input type="time" id="viewTimeToInput" placeholder="Đến giờ" />
+        <textarea
+          id="viewContentInput"
+          placeholder="Nội dung nhiệm vụ"
+        ></textarea>
+        <label
+          ><input type="checkbox" id="viewCompletedInput" /> Hoàn thành</label
+        >
+        <button onclick="saveEditedTask()">Lưu</button>
+        <button class="delete-btn" onclick="deleteTask()">Xóa</button>
+        <button onclick="closeModal('viewModal')">Hủy</button>
+      </div>
+    </div>
+
+    <div id="historyModal" class="modal">
+      <div class="modal-content">
+        <h3>Lịch Sử Thời Khóa Biểu</h3>
+        <ul id="historyList"></ul>
+        <button onclick="closeModal('historyModal')">Đóng</button>
+      </div>
+    </div>
+
+    <div id="loginModal" class="modal">
+      <div class="modal-content">
+        <h3>Đăng Nhập</h3>
+        <input
+          type="email"
+          id="emailInput"
+          placeholder="Email"
+          autocomplete="email"
+        />
+        <input
+          type="password"
+          id="passwordInput"
+          placeholder="Mật khẩu"
+          autocomplete="current-password"
+        />
+        <button onclick="loginWithEmail()">Đăng Nhập</button>
+        <button class="google-btn" onclick="loginWithGoogle()">
+          Đăng Nhập với Google
+        </button>
+        <button onclick="registerWithEmail()">Đăng Ký</button>
+        <button onclick="closeModal('loginModal')">Hủy</button>
+      </div>
+    </div>
+
+    <script>
+      // Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyDr7ySnNfcgB2b2u2tPZLc5L4l1FGdjX4A",
+        authDomain: "login-81d5f.firebaseapp.com",
+        projectId: "login-81d5f",
+        storageBucket: "login-81d5f.firebasestorage.app",
+        messagingSenderId: "103989490854",
+        appId: "YOUR_ACTUAL_APP_ID", // TODO: Replace with actual appId from Firebase Console > Project Settings > General > Your Apps
+      };
+
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+      const database = firebase.database();
+
+      let currentTasks = [];
+      let historyTasks = [];
+      let currentTaskIndex = null;
+      let currentDay = null;
+      let currentPeriod = null;
+      let currentUser = null;
+
+      // Function to check and update orientation
+      function updateOrientation() {
+        try {
+          const isMobile = window.matchMedia("(max-width: 800px)").matches;
+          const isLandscape =
+            window.screen.orientation &&
+            (window.screen.orientation.type.includes("landscape") ||
+              window.innerWidth > window.innerHeight);
+          const portraitOverlay = document.getElementById("portraitOverlay");
+          const container = document.querySelector(".container");
+
+          if (isMobile && !isLandscape) {
+            portraitOverlay.style.display = "block";
+            container.style.display = "none";
+          } else {
+            portraitOverlay.style.display = "none";
+            container.style.display = "block";
+          }
+        } catch (error) {
+          console.error("Error in updateOrientation:", error);
+        }
+      }
+
+      // Initial orientation check
+      updateOrientation();
+
+      // Listen for orientation changes
+      window.addEventListener("orientationchange", updateOrientation);
+      window.addEventListener("resize", updateOrientation);
+
+      // Authentication state listener
+      auth.onAuthStateChanged((user) => {
+        try {
+          currentUser = user;
+          const authContainer = document.getElementById("authContainer");
+          const scheduleContainer =
+            document.getElementById("scheduleContainer");
+          const scheduleTable = document.getElementById("scheduleTable");
+
+          if (user) {
+            console.log("User logged in:", user.email);
+            authContainer.classList.add("hidden");
+            scheduleContainer.classList.remove("hidden");
+            scheduleTable.classList.remove("hidden");
+            loadUserData(user.uid);
+          } else {
+            console.log("No user logged in");
+            authContainer.classList.remove("hidden");
+            scheduleContainer.classList.add("hidden");
+            scheduleTable.classList.add("hidden");
+            currentTasks = [];
+            historyTasks = [];
+            renderTasks();
+          }
+        } catch (error) {
+          console.error("Error in auth state change:", error);
+          alert("Đã xảy ra lỗi khi xử lý trạng thái đăng nhập!");
+        }
+      });
+
+      // Load user data from Firebase
+      function loadUserData(uid) {
+        try {
+          const userRef = database.ref(`users/${uid}`);
+          userRef.on("value", (snapshot) => {
+            const data = snapshot.val() || {};
+            currentTasks = data.currentTasks || [];
+            historyTasks = data.historyTasks || [];
+            console.log("Loaded user data:", { currentTasks, historyTasks });
+            renderTasks();
+          });
+        } catch (error) {
+          console.error("Error loading user data:", error);
+          alert("Đã xảy ra lỗi khi tải dữ liệu!");
+        }
+      }
+
+      // Save user data to Firebase
+      function saveUserData() {
+        try {
+          if (!currentUser) {
+            console.error("No user logged in, cannot save data");
+            return;
+          }
+          const userRef = database.ref(`users/${currentUser.uid}`);
+          userRef.set({
+            currentTasks,
+            historyTasks,
+          });
+          console.log("Saved user data:", { currentTasks, historyTasks });
+        } catch (error) {
+          console.error("Error saving user data:", error);
+          alert("Đã xảy ra lỗi khi lưu dữ liệu!");
+        }
+      }
+
+      // Login with email/password
+      function loginWithEmail() {
+        try {
+          const email = document.getElementById("emailInput").value.trim();
+          const password = document.getElementById("passwordInput").value;
+          if (!email || !password) {
+            alert("Vui lòng điền email và mật khẩu!");
+            return;
+          }
+          auth
+            .signInWithEmailAndPassword(email, password)
+            .then(() => {
+              closeModal("loginModal");
+              alert("Đăng nhập thành công!");
+            })
+            .catch((error) => {
+              console.error("Email login error:", error);
+              alert("Đăng nhập thất bại: " + error.message);
+            });
+        } catch (error) {
+          console.error("Error in loginWithEmail:", error);
+          alert("Đã xảy ra lỗi khi đăng nhập!");
+        }
+      }
+
+      // Register with email/password
+      function registerWithEmail() {
+        try {
+          const email = document.getElementById("emailInput").value.trim();
+          const password = document.getElementById("passwordInput").value;
+          if (!email || !password) {
+            alert("Vui lòng điền email và mật khẩu!");
+            return;
+          }
+          auth
+            .createUserWithEmailAndPassword(email, password)
+            .then(() => {
+              closeModal("loginModal");
+              alert("Đăng ký thành công! Bạn đã được đăng nhập.");
+            })
+            .catch((error) => {
+              console.error("Email registration error:", error);
+              alert("Đăng ký thất bại: " + error.message);
+            });
+        } catch (error) {
+          console.error("Error in registerWithEmail:", error);
+          alert("Đã xảy ra lỗi khi đăng ký!");
+        }
+      }
+
+      // Login with Google
+      function loginWithGoogle() {
+        try {
+          const provider = new firebase.auth.GoogleAuthProvider();
+          auth
+            .signInWithPopup(provider)
+            .then(() => {
+              closeModal("loginModal");
+              alert("Đăng nhập với Google thành công!");
+            })
+            .catch((error) => {
+              console.error("Google login error:", error);
+              alert("Đăng nhập với Google thất bại: " + error.message);
+            });
+        } catch (error) {
+          console.error("Error in loginWithGoogle:", error);
+          alert("Đã xảy ra lỗi khi đăng nhập với Google!");
+        }
+      }
+
+      // Logout
+      function logout() {
+        try {
+          auth
+            .signOut()
+            .then(() => {
+              alert("Đã đăng xuất!");
+            })
+            .catch((error) => {
+              console.error("Logout error:", error);
+              alert("Đăng xuất thất bại: " + error.message);
+            });
+        } catch (error) {
+          console.error("Error in logout:", error);
+          alert("Đã xảy ra lỗi khi đăng xuất!");
+        }
+      }
+
+      function renderTasks(tasksToRender = currentTasks) {
+        try {
+          console.log("Rendering tasks:", tasksToRender);
+          document.querySelectorAll("td[data-day]").forEach((cell) => {
+            const day = cell.dataset.day;
+            const period = cell.dataset.period;
+            cell.innerHTML = "";
+            const cellTasks = tasksToRender.filter(
+              (t) => t.day === day && t.period === period
+            );
+            console.log(`Tasks for ${day} - ${period}:`, cellTasks);
+            cellTasks.forEach((task, index) => {
+              if (!task.title) {
+                console.error("Task missing title:", task);
+                return;
+              }
+              const taskDiv = document.createElement("div");
+              taskDiv.className = `task-container ${
+                task.completed ? "completed" : ""
+              }`;
+              taskDiv.textContent = task.title;
+              taskDiv.onclick = () =>
+                openViewModal(day, period, tasksToRender.indexOf(task));
+              cell.appendChild(taskDiv);
+            });
+          });
+        } catch (error) {
+          console.error("Error in renderTasks:", error);
+        }
+      }
+
+      function openAddModal() {
+        try {
+          const modal = document.getElementById("addModal");
+          if (!modal) {
+            console.error("Add modal not found!");
+            return;
+          }
+          currentDay = document.getElementById("dayInput").value;
+          currentPeriod = document.getElementById("periodInput").value;
+          console.log("Opening add modal:", { currentDay, currentPeriod });
+          document.getElementById("addTitleInput").value = "";
+          document.getElementById("addTimeFromInput").value = "";
+          document.getElementById("addTimeToInput").value = "";
+          document.getElementById("addContentInput").value = "";
+          modal.style.display = "block";
+        } catch (error) {
+          console.error("Error opening add modal:", error);
+        }
+      }
+
+      function openViewModal(day, period, index) {
+        try {
+          currentTaskIndex = index;
+          currentDay = day;
+          currentPeriod = period;
+          const task = currentTasks[index];
+          console.log("Opening view modal for task:", task);
+          document.getElementById("viewTitleInput").value = task.title;
+          document.getElementById("viewTimeFromInput").value = task.timeFrom;
+          document.getElementById("viewTimeToInput").value = task.timeTo;
+          document.getElementById("viewContentInput").value = task.content;
+          document.getElementById("viewCompletedInput").checked =
+            task.completed;
+          document.getElementById("viewModal").style.display = "block";
+        } catch (error) {
+          console.error("Error opening view modal:", error);
+        }
+      }
+
+      function saveTask() {
+        try {
+          const title = document.getElementById("addTitleInput").value.trim();
+          const timeFrom = document.getElementById("addTimeFromInput").value;
+          const timeTo = document.getElementById("addTimeToInput").value;
+          const content = document
+            .getElementById("addContentInput")
+            .value.trim();
+
+          if (!title || !timeFrom || !timeTo || !content) {
+            alert("Vui lòng điền đầy đủ thông tin!");
+            return;
+          }
+
+          const newTask = {
+            day: currentDay,
+            period: currentPeriod,
+            title,
+            timeFrom,
+            timeTo,
+            content,
+            completed: false,
+          };
+          console.log("Saving new task:", newTask);
+          currentTasks.push(newTask);
+          saveUserData();
+          renderTasks();
+          closeModal("addModal");
+          alert("Đã thêm nhiệm vụ thành công!");
+        } catch (error) {
+          console.error("Error saving task:", error);
+        }
+      }
+
+      function saveEditedTask() {
+        try {
+          const title = document.getElementById("viewTitleInput").value.trim();
+          const timeFrom = document.getElementById("viewTimeFromInput").value;
+          const timeTo = document.getElementById("viewTimeToInput").value;
+          const content = document
+            .getElementById("viewContentInput")
+            .value.trim();
+          const completed =
+            document.getElementById("viewCompletedInput").checked;
+
+          if (!title || !timeFrom || !timeTo || !content) {
+            alert("Vui lòng điền đầy đủ thông tin!");
+            return;
+          }
+
+          console.log("Saving edited task:", {
+            day: currentDay,
+            period: currentPeriod,
+            title,
+            timeFrom,
+            timeTo,
+            content,
+            completed,
+          });
+          currentTasks[currentTaskIndex] = {
+            day: currentDay,
+            period: currentPeriod,
+            title,
+            timeFrom,
+            timeTo,
+            content,
+            completed,
+          };
+          saveUserData();
+          renderTasks();
+          closeModal("viewModal");
+          alert("Đã lưu chỉnh sửa thành công!");
+        } catch (error) {
+          console.error("Error saving edited task:", error);
+        }
+      }
+
+      function deleteTask() {
+        try {
+          console.log("Deleting task at index:", currentTaskIndex);
+          currentTasks.splice(currentTaskIndex, 1);
+          saveUserData();
+          renderTasks();
+          closeModal("viewModal");
+          alert("Đã xóa nhiệm vụ!");
+        } catch (error) {
+          console.error("Error deleting task:", error);
+        }
+      }
+
+      function createNewSchedule() {
+        try {
+          if (currentTasks.length > 0) {
+            historyTasks.push({
+              id: Date.now(),
+              tasks: [...currentTasks],
+              createdAt: new Date().toLocaleString("vi-VN"),
+            });
+          }
+          currentTasks = [];
+          saveUserData();
+          renderTasks();
+          alert("Đã tạo thời khóa biểu mới!");
+        } catch (error) {
+          console.error("Error creating new schedule:", error);
+        }
+      }
+
+      function openHistoryModal() {
+        try {
+          const historyList = document.getElementById("historyList");
+          historyList.innerHTML = "";
+          if (historyTasks.length === 0) {
+            const li = document.createElement("li");
+            li.textContent = "Chưa có lịch sử thời khóa biểu.";
+            historyList.appendChild(li);
+          } else {
+            historyTasks.forEach((schedule, index) => {
+              const li = document.createElement("li");
+              li.textContent = `Thời khóa biểu ${index + 1} - Tạo lúc: ${
+                schedule.createdAt
+              }`;
+              li.onclick = () => {
+                currentTasks = [...schedule.tasks];
+                saveUserData();
+                renderTasks();
+                closeModal("historyModal");
+                alert("Đã khôi phục thời khóa biểu!");
+              };
+              historyList.appendChild(li);
+            });
+          }
+          document.getElementById("historyModal").style.display = "block";
+        } catch (error) {
+          console.error("Error opening history modal:", error);
+        }
+      }
+
+      function closeModal(modalId) {
+        try {
+          const modal = document.getElementById(modalId);
+          if (!modal) {
+            console.error(`Modal ${modalId} not found!`);
+            return;
+          }
+          modal.style.display = "none";
+          currentTaskIndex = null;
+          currentDay = null;
+          currentPeriod = null;
+        } catch (error) {
+          console.error(`Error closing modal ${modalId}:`, error);
+        }
+      }
+
+      function clearUserData() {
+        try {
+          currentTasks = [];
+          historyTasks = [];
+          saveUserData();
+          renderTasks();
+          alert("Đã xóa toàn bộ dữ liệu!");
+        } catch (error) {
+          console.error("Error clearing user data:", error);
+        }
+      }
+
+      function openLoginModal() {
+        try {
+          document.getElementById("emailInput").value = "";
+          document.getElementById("passwordInput").value = "";
+          document.getElementById("loginModal").style.display = "block";
+        } catch (error) {
+          console.error("Error opening login modal:", error);
+        }
+      }
+
+      // Gắn sự kiện
+      document
+        .getElementById("addTaskBtn")
+        .addEventListener("click", openAddModal);
+      document
+        .getElementById("newScheduleBtn")
+        .addEventListener("click", createNewSchedule);
+      document
+        .getElementById("historyBtn")
+        .addEventListener("click", openHistoryModal);
+      document
+        .getElementById("clearDataBtn")
+        .addEventListener("click", clearUserData);
+      document
+        .getElementById("loginBtn")
+        .addEventListener("click", openLoginModal);
+      document.getElementById("logoutBtn").addEventListener("click", logout);
+
+      // Khởi tạo giao diện
+      renderTasks();
+    </script>
+  </body>
+</html>
